@@ -1,0 +1,32 @@
+# 大肥鱼象棋 — bundle layer. The host plugin is the package itself.
+# The stdio server publishes tools the session model calls as
+# mcp__dafeiyu__read_position, mcp__dafeiyu__submit_move, and
+# mcp__dafeiyu__restart_game.
+# Paths resolve from the profile that loads this bundle.
+# The session file defaults to ~/.dsh/profiles/desktop/dafeiyu-xiangqi.json.
+
+- insert:
+    - id: dsh-dafeiyu-xiangqi
+      name: dsh-dafeiyu-xiangqi
+    - id: mcp-dafeiyu-xiangqi
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: dafeiyu
+        transport: stdio
+        command: !!js process.execPath
+        args:
+          - !!js >-
+              (() => {
+                const require = process.getBuiltinModule("node:module").createRequire(ctx.baseUrl);
+                const path = process.getBuiltinModule("node:path");
+                return path.join(path.dirname(require.resolve("dsh-dafeiyu-xiangqi/package.json")), "lib", "mcp-stdio.js");
+              })()
+        cwd: !!js >-
+          (() => {
+            const require = process.getBuiltinModule("node:module").createRequire(ctx.baseUrl);
+            const path = process.getBuiltinModule("node:path");
+            return path.dirname(require.resolve("dsh-dafeiyu-xiangqi/package.json"));
+          })()
+        env:
+          ELECTRON_RUN_AS_NODE: "1"
+        toolCallTimeoutMs: 60000

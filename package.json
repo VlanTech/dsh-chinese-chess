@@ -1,0 +1,37 @@
+{
+  "name": "dsh-dafeiyu-xiangqi",
+  "version": "0.1.0",
+  "description": "大肥鱼象棋：在 DSH 右侧栏与 AI 下中国象棋，AI 通过 MCP 走子",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VlanTech/dsh-chinese-chess.git"
+  },
+  "homepage": "https://github.com/VlanTech/dsh-chinese-chess#readme",
+  "bugs": {
+    "url": "https://github.com/VlanTech/dsh-chinese-chess/issues"
+  },
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "skills",
+    "tests",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": ["slots", "sidebarRightTabs", "sidebarRight"]
+    }
+  },
+  "license": "MIT"
+}
