@@ -1,7 +1,7 @@
 # 大肥鱼象棋 — bundle layer. The host plugin is the package itself.
 # The stdio server publishes tools the session model calls as
-# mcp__dafeiyu__read_position, mcp__dafeiyu__submit_move, and
-# mcp__dafeiyu__restart_game.
+# mcp__dafeiyu__read_position, mcp__dafeiyu__preview_move,
+# mcp__dafeiyu__submit_move, and mcp__dafeiyu__restart_game.
 # Paths resolve from the profile that loads this bundle.
 # The session file defaults to ~/.dsh/profiles/desktop/dafeiyu-xiangqi.json.
 

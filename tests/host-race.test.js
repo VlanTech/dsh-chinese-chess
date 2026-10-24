@@ -95,7 +95,7 @@ test("one reasoning delta is stored once, and a later click keeps the MCP move",
     method: "tools/call",
     params: {
       name: "submit_move",
-      arguments: { fromFile: 1, fromRank: 9, toFile: 2, toRank: 7 },
+      arguments: { fromFile: 7, fromRank: 0, toFile: 6, toRank: 2 },
     },
   }, file);
   const submittedValue = JSON.parse(submitted.content[0].text);

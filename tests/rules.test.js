@@ -7,6 +7,7 @@ import {
   findKing,
   gameStatus,
   generalsFace,
+  horseDelta,
   inventory,
   isLegalMove,
   openingBoard,
@@ -127,6 +128,41 @@ test("马 moves one orthogonal plus one diagonal, and 蹩马腿 blocks it", () =
   blocked = put(blocked, "black", "K", 0, 9);
   reject(blocked, "red", { file: 1, rank: 0 }, { file: 2, rank: 2 }, "illegal");
   reject(blocked, "red", { file: 1, rank: 0 }, { file: 0, rank: 2 }, "illegal");
+});
+
+test("a center horse reaches every empty-leg 日 square, and one leg blocks only that pair", () => {
+  let board = put(emptyBoard(), "red", "N", 4, 4);
+  board = put(board, "red", "K", 4, 0);
+  board = put(board, "black", "K", 0, 9);
+  const hops = [[5, 6], [3, 6], [5, 2], [3, 2], [6, 5], [2, 5], [6, 3], [2, 3]];
+  for (const [file, rank] of hops) accept(board, "red", { file: 4, rank: 4 }, { file, rank });
+
+  let diagonal = put(board, "black", "P", 5, 5);
+  accept(diagonal, "red", { file: 4, rank: 4 }, { file: 5, rank: 6 });
+  accept(diagonal, "red", { file: 4, rank: 4 }, { file: 6, rank: 5 });
+
+  let leg = put(board, "red", "P", 4, 5);
+  assert.deepEqual(horseDelta({ file: 4, rank: 4 }, { file: 5, rank: 6 }), { file: 4, rank: 5 });
+  reject(leg, "red", { file: 4, rank: 4 }, { file: 5, rank: 6 }, "illegal");
+  reject(leg, "red", { file: 4, rank: 4 }, { file: 3, rank: 6 }, "illegal");
+  accept(leg, "red", { file: 4, rank: 4 }, { file: 6, rank: 5 });
+  accept(leg, "red", { file: 4, rank: 4 }, { file: 5, rank: 2 });
+
+  const opening = openingBoard();
+  accept(opening, "red", { file: 1, rank: 0 }, { file: 0, rank: 2 });
+  reject(opening, "red", { file: 1, rank: 0 }, { file: 3, rank: 1 }, "illegal");
+  accept(opening, "black", { file: 1, rank: 9 }, { file: 2, rank: 7 });
+  reject(opening, "black", { file: 1, rank: 9 }, { file: 3, rank: 8 }, "illegal");
+});
+
+test("a horse that alone screens the generals cannot step aside", () => {
+  let board = put(emptyBoard(), "red", "K", 4, 0);
+  board = put(board, "black", "K", 4, 9);
+  board = put(board, "red", "N", 4, 1);
+  assert.equal(board[2][4], null);
+  assert.deepEqual(horseDelta({ file: 4, rank: 1 }, { file: 3, rank: 3 }), { file: 4, rank: 2 });
+  reject(board, "red", { file: 4, rank: 1 }, { file: 3, rank: 3 }, "leaves-check");
+  reject(board, "red", { file: 4, rank: 1 }, { file: 5, rank: 3 }, "leaves-check");
 });
 
 test("车 slides orthogonally and cannot jump", () => {

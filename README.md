@@ -26,9 +26,10 @@ npm install
 ## 怎么下
 
 - 输入 `/chessplay`，或在对话里说「来下棋」「下象棋」。棋盘出现在右侧栏。
-- 在开始界面选择「我执红」或「我执黑」。
+- 在开始界面选择「我执红」或「我执黑」。选中的一方画在下方。
+- 在棋盘上走子会直接叫醒当前会话，不必再对模型说一次开始。
 - 说「重来」「再来一局」「重新开始」「重开」或「新的一局」，回到选边。模型也可以调用 `mcp__dafeiyu__restart_game` 做同样的事。选边之前它不能走子。
-- 轮到模型时，它先读 `mcp__dafeiyu__read_position`，再提交唯一一着 `mcp__dafeiyu__submit_move`。
+- 轮到模型时，它先读 `mcp__dafeiyu__read_position`。坐标以模型自己的棋子在下方为准。它可以先用 `mcp__dafeiyu__preview_move` 看下一着会被吃掉哪些子，再提交唯一一着 `mcp__dafeiyu__submit_move`。欲走不会显示在棋盘上。
 
 局面写在 `~/.dsh/profiles/desktop/dafeiyu-xiangqi.json`。桌面端和网页端共用这一份。
 

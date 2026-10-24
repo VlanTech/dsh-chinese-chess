@@ -46,9 +46,9 @@ test("AI moves only through MCP on the shared session", { timeout: 20000 }, asyn
     transport.stderr?.on("data", (chunk) => stderr.push(String(chunk)));
     const listed = await client.listTools();
     const raw = listed.tools.map((tool) => tool.name).sort();
-    assert.deepEqual(raw, ["read_position", "restart_game", "submit_move"]);
+    assert.deepEqual(raw, ["preview_move", "read_position", "restart_game", "submit_move"]);
     const published = raw.map((name) => modelToolName(name)).sort();
-    assert.deepEqual(published, ["mcp__dafeiyu__read_position", "mcp__dafeiyu__restart_game", "mcp__dafeiyu__submit_move"]);
+    assert.deepEqual(published, ["mcp__dafeiyu__preview_move", "mcp__dafeiyu__read_position", "mcp__dafeiyu__restart_game", "mcp__dafeiyu__submit_move"]);
     for (const name of published) assert.match(name, /^mcp__/);
 
     const openingKey = boardKey(loadSession(file).board);
@@ -77,17 +77,19 @@ test("AI moves only through MCP on the shared session", { timeout: 20000 }, asyn
     assert.equal(seen.ok, true);
     assert.equal(seen.surface.turn, "black");
     assert.equal(seen.surface.boardKey, afterPlayer);
+    const seatKnight = seen.surface.pieces.find((piece) => piece.side === "black" && piece.type === "N" && piece.file === 7 && piece.rank === 0);
+    assert.ok(seatKnight, "black knight should sit on the AI's back rank");
 
     const illegal = textOf(await client.callTool({
       name: "submit_move",
-      arguments: { fromFile: 1, fromRank: 9, toFile: 1, toRank: 8 },
+      arguments: { fromFile: 7, fromRank: 0, toFile: 7, toRank: 1 },
     }));
     assert.equal(illegal.ok, false);
     assert.equal(boardKey(loadSession(file).board), afterPlayer);
 
     const wrongSide = textOf(await client.callTool({
       name: "submit_move",
-      arguments: { fromFile: 0, fromRank: 0, toFile: 0, toRank: 1 },
+      arguments: { fromFile: 8, fromRank: 9, toFile: 8, toRank: 8 },
     }));
     assert.equal(wrongSide.ok, false);
     assert.equal(wrongSide.error, "not-ai-piece");
@@ -95,7 +97,7 @@ test("AI moves only through MCP on the shared session", { timeout: 20000 }, asyn
 
     const legal = textOf(await client.callTool({
       name: "submit_move",
-      arguments: { fromFile: 1, fromRank: 9, toFile: 2, toRank: 7 },
+      arguments: { fromFile: 7, fromRank: 0, toFile: 6, toRank: 2 },
     }));
     assert.equal(legal.ok, true, JSON.stringify(legal));
     const afterAi = loadSession(file);
@@ -153,4 +155,78 @@ test("restart_game returns to the chooser and does not move a piece", () => {
   assert.equal(rejected.ok, false);
   assert.equal(rejected.error, "awaiting-choice");
   assert.equal(boardKey(loadSession(file).board), key);
+});
+
+test("preview_move lists the captures and does not change the board", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "dafeiyu-preview-"));
+  const file = path.join(dir, "session.json");
+  let board = emptyBoard();
+  board = put(board, "red", "K", 4, 0);
+  board = put(board, "black", "K", 6, 9);
+  board = put(board, "red", "R", 0, 1);
+  board = put(board, "black", "P", 0, 6);
+  board = put(board, "black", "N", 1, 9);
+  const session = createSession({ board, playerSide: "red", turn: "black" });
+  assert.equal(session.winner, null);
+  saveSession(session, file);
+  const key = boardKey(session.board);
+
+  const seen = textOf(dispatchMcp({
+    method: "tools/call",
+    id: 1,
+    params: { name: "read_position", arguments: {} },
+  }, file));
+  const general = seen.surface.pieces.find((piece) => piece.side === "black" && piece.type === "K");
+  assert.equal(general.rank, 0);
+  assert.equal(general.file, 2);
+
+  const first = textOf(dispatchMcp({
+    method: "tools/call",
+    id: 2,
+    params: { name: "preview_move", arguments: { fromFile: 7, fromRank: 0, toFile: 6, toRank: 2 } },
+  }, file));
+  assert.equal(first.ok, true, JSON.stringify(first));
+  assert.equal(first.committed, false);
+  assert.equal(first.visibleToPlayer, false);
+  assert.equal(first.undo, false);
+  assert.equal(first.captured, null);
+  assert.match(first.captureText, /卒/);
+  assert.ok(first.captures.some((item) => item.takes.label === "卒" && item.takes.file === 8 && item.takes.rank === 3));
+  assert.equal(boardKey(loadSession(file).board), key);
+  assert.equal(loadSession(file).turn, "black");
+
+  const second = textOf(dispatchMcp({
+    method: "tools/call",
+    id: 3,
+    params: { name: "preview_move", arguments: { fromFile: 7, fromRank: 0, toFile: 8, toRank: 2 } },
+  }, file));
+  assert.equal(second.ok, true, JSON.stringify(second));
+  assert.equal(second.committed, false);
+  assert.equal(boardKey(loadSession(file).board), key);
+
+  const illegal = textOf(dispatchMcp({
+    method: "tools/call",
+    id: 4,
+    params: { name: "preview_move", arguments: { fromFile: 7, fromRank: 0, toFile: 7, toRank: 1 } },
+  }, file));
+  assert.equal(illegal.ok, false);
+  assert.equal(illegal.committed, false);
+  assert.equal(boardKey(loadSession(file).board), key);
+});
+
+test("a red AI still sees its own pieces on rank 0", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "dafeiyu-seat-"));
+  const file = path.join(dir, "session.json");
+  saveSession(createSession({ playerSide: "black" }), file);
+  const seen = textOf(dispatchMcp({
+    method: "tools/call",
+    id: 1,
+    params: { name: "read_position", arguments: {} },
+  }, file));
+  const king = seen.surface.pieces.find((piece) => piece.side === "red" && piece.type === "K");
+  const general = seen.surface.pieces.find((piece) => piece.side === "black" && piece.type === "K");
+  assert.equal(king.file, 4);
+  assert.equal(king.rank, 0);
+  assert.equal(general.rank, 9);
+  assert.match(seen.surface.orientation, /你的棋子在下方/);
 });

@@ -17,9 +17,20 @@ test("the chess skill tells the model to load it and then use MCP", () => {
   assert.match(document.content, /mcp__dafeiyu__restart_game/);
   assert.match(document.description, /mcp__dafeiyu__restart_game/);
   assert.match(document.content, /awaitingChoice/);
+  assert.match(document.content, /mcp__dafeiyu__preview_move/);
+  assert.match(document.description, /mcp__dafeiyu__preview_move/);
   assert.match(document.content, /唯一一着/);
   assert.match(document.content, /左侧对话/);
   assert.match(document.content, /思维链/);
+  assert.match(document.content, /中文/);
+  assert.match(document.content, /CETACEA_LOLI/);
+  assert.match(document.content, /MODE_TAIL_FLUKES/);
+  assert.match(document.content, /FOOD_RICE/);
+  assert.match(document.content, /PERSONALITY_SMART_LAZY/);
+  assert.match(document.content, /PERSONALITY_TSUNDERE_SWEET/);
+  assert.match(document.content, /OBEY_MASTER_ALWAYS/);
+  assert.match(document.content, /TRAIT_NOT_FAT_REFUSE/);
+  assert.match(document.content, /你的棋子在下方/);
 });
 
 test("opening the board wakes the session agent without a move", () => {
@@ -42,6 +53,9 @@ test("opening the board wakes the session agent without a move", () => {
   assert.match(delivered[0].content[0].text, new RegExp(SKILL_NAME));
   assert.match(delivered[0].content[0].text, /左侧对话从这一轮开始/);
   assert.match(delivered[0].content[0].text, /轮到玩家时不要提交/);
+  assert.match(delivered[0].content[0].text, /中文/);
+  assert.match(delivered[0].content[0].text, /mcp__dafeiyu__preview_move/);
+  assert.match(delivered[0].content[0].text, /你的棋子在下方/);
   assert.equal(session.lastAgentRequest.appliesMove, false);
   assert.equal(session.turn, "red");
 });

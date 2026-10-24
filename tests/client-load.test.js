@@ -56,6 +56,8 @@ test("the browser client installs 大肥鱼象棋 without Node module or require
   assert.match(document.body.children[0].innerHTML, /我执红/);
   assert.match(document.body.children[0].innerHTML, /dfy-start/);
   assert.equal(source.includes("思维链"), false);
+  assert.equal(source.includes("CETACEA"), false);
+  assert.equal(source.includes("欲走"), false);
   assert.equal(source.includes("dfy-capture"), true);
   assert.equal(source.includes("dfy-result"), true);
   assert.equal(source.includes("dfy-seal"), true);
@@ -148,6 +150,13 @@ test("the board animates a move, frames captures, and stamps the result", () => 
   assert.match(root.innerHTML, /dfy-capture/);
   assert.match(root.innerHTML, /dfy-target/);
   assert.equal(root.innerHTML.includes('class="dfy-target" data-file="0" data-rank="3"'), false);
+  assert.equal(root.innerHTML.includes('class="dfy-land" data-file="0" data-rank="3"'), false);
+  assert.match(root.innerHTML, /class="dfy-piece dfy-own"/);
+  assert.match(root.innerHTML, /class="dfy-piece dfy-foe"/);
+  assert.match(root.innerHTML, /font-weight="800"/);
+  assert.match(root.innerHTML, /font-weight="500"/);
+  assert.match(root.innerHTML, /dfy-hit/);
+  assert.match(root.innerHTML, /width="46"/);
 
   paint(root, {
     awaitingChoice: false,
@@ -203,4 +212,92 @@ test("the board animates a move, frames captures, and stamps the result", () => 
   assert.match(root.innerHTML, /is-loss/);
   assert.match(root.innerHTML, />负</);
   assert.match(root.innerHTML, /dfy-shake/);
+
+  paint(root, {
+    awaitingChoice: false,
+    turn: "red",
+    playerSide: "red",
+    winner: null,
+    selected: { file: 1, rank: 0 },
+    targets: [],
+    captures: [],
+    pieces: [
+      { side: "red", type: "N", label: "马", file: 1, rank: 0 },
+      { side: "black", type: "P", label: "卒", file: 0, rank: 3 },
+    ],
+    lastMove: {
+      from: { file: 0, rank: 0 },
+      to: { file: 0, rank: 3 },
+      captured: { side: "black", type: "P", label: "卒" },
+    },
+    notice: "马腿被挡",
+    noticeMark: { file: 2, rank: 0 },
+    boardKey: "horse-notice",
+    openedAt: 1,
+  });
+  assert.match(root.innerHTML, /dfy-notice/);
+  assert.match(root.innerHTML, /马腿被挡/);
+  assert.match(root.innerHTML, /dfy-leg/);
+  assert.equal(root.innerHTML.includes("思维链"), false);
+});
+
+test("the chosen side stays at the bottom, including black", () => {
+  const source = readFileSync(new URL("../lib/client.js", import.meta.url), "utf8");
+  let clock = 0;
+  const document = { body: element("body"), head: element("head"), createElement: element };
+  const sandbox = {
+    window: {
+      document,
+      addEventListener() {},
+      setInterval() { return 0; },
+      clearInterval() {},
+      requestAnimationFrame(fn) {
+        clock += 400;
+        fn(clock);
+        return clock;
+      },
+    },
+    console,
+  };
+  sandbox.window.window = sandbox.window;
+  runInContext(source, createContext(sandbox), { filename: "client.js" });
+  const paint = sandbox.window.__DAFEIYU_XIANGQI__.paint;
+  const root = richRoot();
+  const pieces = [
+    { side: "red", type: "K", label: "帅", file: 4, rank: 0 },
+    { side: "black", type: "K", label: "将", file: 4, rank: 9 },
+    { side: "red", type: "R", label: "车", file: 0, rank: 0 },
+  ];
+  paint(root, {
+    awaitingChoice: false,
+    turn: "black",
+    playerSide: "black",
+    pieces,
+    lastMove: null,
+    boardKey: "black-bottom",
+    openedAt: 2,
+  });
+  assert.match(root.innerHTML, /data-file="4" data-rank="9"/);
+  assert.match(root.innerHTML, /cx="210" cy="440"/);
+  assert.match(root.innerHTML, /cx="210" cy="26"/);
+  assert.match(root.innerHTML, /class="dfy-piece dfy-own"[^>]*data-file="4" data-rank="9"/);
+  assert.match(root.innerHTML, /class="dfy-piece dfy-foe"[^>]*data-file="4" data-rank="0"/);
+  assert.equal(root.innerHTML.includes('data-file="4" data-rank="0"'), true);
+
+  paint(root, {
+    awaitingChoice: false,
+    turn: "red",
+    playerSide: "black",
+    pieces: [{ side: "red", type: "R", label: "车", file: 0, rank: 3 }],
+    lastMove: {
+      from: { file: 0, rank: 0 },
+      to: { file: 0, rank: 3 },
+      captured: null,
+    },
+    boardKey: "black-moved",
+    openedAt: 2,
+  });
+  assert.equal(root.mover.attrs.transform, "translate(0 138)");
+  assert.match(root.innerHTML, /data-file="0" data-rank="3"/);
+  assert.match(root.innerHTML, /cx="394" cy="164"/);
 });
